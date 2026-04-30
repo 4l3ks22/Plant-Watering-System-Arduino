@@ -13,7 +13,7 @@ long lastMoistureCheck = 0;
 long lastUltrasonicCheck = 0;
 
 const long moistureInterval = 4000; // 4 seconds between moisture checks to avoid excessive sensor reads
-const long ultrasonicInterval = 400; // 400ms balance between responsiveness and stability
+const long ultrasonicInterval = 4000; // 4 seconds check of water level
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 
@@ -79,7 +79,7 @@ void loop() {
     }
   }
 
-  // ultrasonic sensor check every 400ms
+  // ultrasonic sensor check every 4 seconds
 
   if (millis() - lastUltrasonicCheck >= ultrasonicInterval) {
     lastUltrasonicCheck = millis();
@@ -103,9 +103,9 @@ void loop() {
 
   u8g2.drawStr(10, 15, "Moisture:");
   u8g2.setCursor(80, 15);
-  u8g2.print(analogRead(moistureSensorPin)); 
+  u8g2.print(analogRead(moistureSensorPin)); // Display moisture value
 
-  u8g2.drawStr(10, 35, "Water:");
+  u8g2.drawStr(10, 35, "Water:"); // Display water level status
 
   if (distance == -1) {
     u8g2.drawStr(60, 35, "NO SIGNAL");
