@@ -8,6 +8,7 @@ const int trigPin = 9;
 const int echoPin = 10;
 
 float distance = -1;
+bool pumpOn = false;
 
 long lastMoistureCheck = 0;
 long lastUltrasonicCheck = 0;
@@ -74,14 +75,17 @@ void loop() {
 
     if (sensorRead < 300) {
       digitalWrite(relayPin, LOW);   // if moisture low - turn water pump on
+      pumpOn = true;
     } else {
       digitalWrite(relayPin, HIGH);  // if moisture ok - turn water pump off
+      pumpOn = false;
     }
   }
 
   // ultrasonic sensor check every 4 seconds
 
-  if (millis() - lastUltrasonicCheck >= ultrasonicInterval) {
+  if (!pumpOn && millis() - lastUltrasonicCheck >= ultrasonicInterval) {
+
     lastUltrasonicCheck = millis();
 
     float newDistance = readDistanceStable();
