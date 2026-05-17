@@ -10,11 +10,8 @@ const int echoPin = 10;
 float distance = -1;
 bool pumpOn = false;
 
-long lastMoistureCheck = 0;
-long lastUltrasonicCheck = 0;
-
-const long moistureInterval = 4000; // 4 seconds between moisture checks to avoid excessive sensor reads
-const long ultrasonicInterval = 4000; // 4 seconds check of water level
+long lastCheck = 0;
+const long checkInterval = 2000;
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 
@@ -52,28 +49,34 @@ float readDistanceStable() { // Read distance twice for more stable reading
 
 void setup() {
   Serial.begin(9600);
-
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
   pinMode(relayPin, OUTPUT);
-
   digitalWrite(relayPin, HIGH); // off by default
-
   u8g2.begin();
 }
 
 void loop() {
 
   // moisture sensor check every 4 secs
-  if (millis() - lastMoistureCheck >= moistureInterval) {
-    lastMoistureCheck = millis();
+  int moistureSensorRead;
 
-    int sensorRead = analogRead(moistureSensorPin);
-
+  if (millis() - lastCheck >= checkInterval) {
+    lastCheck = millis();
+    moistureSensorRead = analogRead(moistureSensorPin);
     Serial.print("Moisture: ");
-    Serial.println(sensorRead);
+    Serial.println(moistureSensorRead);
+    float newDistance = readDistanceStable();
 
-    if (sensorRead < 300) {
+    // reject extreme spikes
+    if (newDistance > 200 || newDistance < 0) {
+      newDistance = -1;
+    }
+    distance = newDistance;
+
+    Serial.print("Distance: ");
+    Serial.println(distance);
+    if (moistureSensorRead < 400) {
       digitalWrite(relayPin, LOW);   // if moisture low - turn water pump on
       pumpOn = true;
     } else {
@@ -81,45 +84,18 @@ void loop() {
       pumpOn = false;
     }
   }
-
-  // ultrasonic sensor check every 4 seconds
-
-  if (!pumpOn && millis() - lastUltrasonicCheck >= ultrasonicInterval) {
-
-    lastUltrasonicCheck = millis();
-
-    float newDistance = readDistanceStable();
-
-    // reject extreme spikes
-    if (newDistance > 200 || newDistance < 0) {
-      newDistance = -1;
-    }
-
-    distance = newDistance;
-
-    Serial.print("Distance: ");
-    Serial.println(distance);
-  }
-
-  // OLED disply setup and update
+// OLED disply setup and update
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_ncenB08_tr);
-
   u8g2.drawStr(10, 15, "Moisture:");
   u8g2.setCursor(80, 15);
-  u8g2.print(analogRead(moistureSensorPin)); // Display moisture value
-
+  u8g2.print(moistureSensorRead);
   u8g2.drawStr(10, 35, "Water:"); // Display water level status
-
   if (distance == -1) {
     u8g2.drawStr(60, 35, "NO SIGNAL");
   } 
-  else if (distance > 10) {
-    u8g2.drawStr(60, 35, "LOW");
-  } 
   else {
-    u8g2.drawStr(60, 35, "OK");
+    u8g2.drawStr(60, 35, String(distance).c_str());
   }
-
   u8g2.sendBuffer();
 }
